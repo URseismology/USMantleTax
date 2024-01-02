@@ -1,0 +1,227 @@
+% Load NVG depths from Excel file
+addpath(genpath(pwd));
+filename = 'Hopper2018.xlsx';
+% Assuming NVG depths are in column C, and lat/long are in columns A and B
+data = xlsread(filename); 
+lat = data(:,1);
+long = data(:,2);
+nvg_depths = data(:,3);
+
+% Given values for Vs and Vp
+Vs = 4.3; % [km/s]
+Vp = 8.0; % [km/s]
+
+% Convert NVG depths to time
+nvg_times = nvg_depths .* (1/Vs - 1/Vp);
+
+% Create a scatter plot on a map
+figure(1);
+ax = usamap('conus'); % conus refers to the contiguous United States
+states = shaperead('usastatelo', 'UseGeoCoords', true);
+geoshow(ax, states, 'DisplayType', 'polygon', 'FaceColor', [0.9 0.9 0.9])
+framem on;
+hold on;
+
+scatterm(lat, long, 10, nvg_times, 'filled')
+colormap(jet); colorbar;
+title('NVG Times across the US');
+xlabel('Longitude');
+ylabel('Latitude');
+
+%%
+% Load NVG depths from Excel file
+filename = 'Hopper2018.xlsx';
+data = xlsread(filename); 
+lat = data(:,1);
+long = data(:,2);
+nvg_depths = data(:,3);
+
+% Given values for Vs and Vp
+Vs = 4.3; % [km/s]
+Vp = 8.0; % [km/s]
+
+% Convert NVG depths to time
+nvg_times = nvg_depths .* (1/Vs - 1/Vp);
+
+% Define grid size (e.g., 10x10 grid across the US)
+num_lat_bins = 10;
+num_long_bins = 10;
+
+avg_area = calculateAverageGridCellArea(lat, long, num_lat_bins, num_long_bins);
+fprintf('The average area of the grid cells is %.2f km^2\n', avg_area);
+
+% Define the number of points to sample from each bin
+num_samples_per_bin = 20; % Adjust as per your requirement
+
+% Create bins for latitude and longitude
+lat_bins = linspace(min(lat), max(lat), num_lat_bins+1);
+long_bins = linspace(min(long), max(long), num_long_bins+1);
+
+% Initialize sampled data
+sampled_lat = [];
+sampled_long = [];
+sampled_nvg_times = [];
+
+% Loop through each bin, sample data, and append to sampled data
+for i = 1:num_lat_bins
+    for j = 1:num_long_bins
+        % Find points in the current bin
+        in_bin = lat >= lat_bins(i) & lat < lat_bins(i+1) & ...
+                 long >= long_bins(j) & long < long_bins(j+1);
+        lat_bin = lat(in_bin);
+        long_bin = long(in_bin);
+        nvg_times_bin = nvg_times(in_bin);
+        
+        % Randomly sample points within this bin
+        num_points_bin = min(num_samples_per_bin, sum(in_bin));
+        idx_sampled = randsample(sum(in_bin), num_points_bin);
+        
+        % Append sampled points to the sampled data
+        sampled_lat = [sampled_lat; lat_bin(idx_sampled)];
+        sampled_long = [sampled_long; long_bin(idx_sampled)];
+        sampled_nvg_times = [sampled_nvg_times; nvg_times_bin(idx_sampled)];
+    end
+end
+
+% Append sampled points to the sampled data
+sampled_lat = [sampled_lat; lat_bin(idx_sampled)];
+sampled_long = [sampled_long; long_bin(idx_sampled)];
+sampled_nvg_times = [sampled_nvg_times; nvg_times_bin(idx_sampled)];
+
+% Output number of data points plotted
+num_data_points_plotted = length(sampled_lat);  % or size(sampled_lat, 1)
+fprintf('Number of data points plotted: %d out of %d\n', num_data_points_plotted, length(lat));
+
+% Plot the sampled data on the US map
+figure(2);
+ax = usamap('conus');
+states = shaperead('usastatelo', 'UseGeoCoords', true);
+geoshow(ax, states, 'DisplayType', 'polygon', 'FaceColor', [0.9 0.9 0.9])
+framem on;
+hold on;
+scatterm(sampled_lat, sampled_long, 10, sampled_nvg_times, 'filled');
+colormap(jet); colorbar;
+title('Sampled NVG Times across the US');
+xlabel('Longitude');
+ylabel('Latitude');
+%%
+% Load NVG depths from Excel file
+filename = 'Hopper2018.xlsx';
+data = xlsread(filename); 
+lat_hopper = data(:,1);
+long_hopper = data(:,2);
+nvg_depths_hopper = data(:,3);
+
+% Given values for Vs and Vp
+Vs = 4.3; % [km/s]
+Vp = 8.0; % [km/s]
+
+% Convert NVG depths to time
+nvg_times_hopper = nvg_depths_hopper .* (1/Vs - 1/Vp);
+
+% Load seismic station locations from CSV file
+filename_stations = 'continental_US.csv';
+station_data = readtable(filename_stations);
+lat_station = station_data.Stalat;
+long_station = station_data.Stalon;
+
+% Initialize NVG times at seismic station locations
+nvg_times_station = zeros(size(lat_station));
+
+% Loop through each station, find the nearest point in the Hopper dataset,
+% and assign the NVG time from the Hopper dataset to that station
+for i = 1:length(lat_station)
+    % Compute Euclidean distance between station and all points in Hopper dataset
+    dist = sqrt((lat_station(i) - lat_hopper).^2 + (long_station(i) - long_hopper).^2);
+    % Find the index of the minimum distance
+    [~, idx_min] = min(dist);
+    % Assign the NVG time from the nearest Hopper data point to the station
+    nvg_times_station(i) = nvg_times_hopper(idx_min);
+end
+
+h3=figure(3);
+ax = axesm('MapProjection','mercator','MapLatLimit',[24 50],'MapLonLimit',[-125 -66]);
+framem on;  % Display grid
+gridm('GLineStyle','-','Gcolor',[.8 .8 .8],'Galtitude',.02); % Customize grid
+mlabel; plabel; % Add labels to meridians and parallels
+hold on;
+scatterm(lat_station, long_station, 25, nvg_times_station, 'filled');
+colormap(jet); colorbar;
+title('Sampled NVG Times across the US');
+xlabel('Longitude');
+ylabel('Latitude');
+
+% Add US State boundaries
+states = shaperead('usastatelo', 'UseGeoCoords', true);
+for idx = 1 : length(states)
+    plotm(states(idx).Lat, states(idx).Lon, 'k')
+end;hold off
+print(h3,'./Figures/HopperNVG_wholeUS','-vector','-dpdf','-r0');
+%%
+fid = fopen('US_Crust_GRL_2015_CrustThickness.txt', 'r');
+
+% Read the data
+data = textscan(fid, '%f%f%f', 'Delimiter', {' ', '\n'}, 'MultipleDelimsAsOne', true);
+
+% Close the file
+fclose(fid);
+
+moho_depth = data{3};
+
+% Given values for Vs, Vp, and rayP
+Vs = 4.3; 
+Vp = 7.5; 
+rayP = linspace(0.02, 0.08, 60);
+
+% Loop through each depth and calculate average tPs, tPps, and tPss
+for i = 1:length(moho_depth)
+    H = [moho_depth(i), 0];
+    [tPs_all, tPps_all, tPss_all] = travelTimesAppx(Vp, Vs, H, rayP, 1, 2);
+    
+    % Averaging the arrival times across all rayP values
+    tPs_avg(i) = mean(tPs_all);
+    tPps_avg(i) = mean(tPps_all);
+    tPss_avg(i) = mean(tPss_all);
+end
+
+% Plot Moho depth vs average arrival times
+h4=figure(4);
+plot(moho_depth, tPs_avg, 'r.', 'MarkerSize', 10); hold on;
+plot(moho_depth, tPps_avg, 'g.', 'MarkerSize', 10);
+plot(moho_depth, tPss_avg, 'b.', 'MarkerSize', 10);
+xlabel('Moho Depth [km]');
+ylabel('Arrival Time [s]');
+legend('tPs', 'tPps', 'tPss');
+title('Moho Depth vs Average Arrival Times');
+grid on; hold off;
+print(h4,'./Figures/Moho','-vector','-dpdf','-r0');
+%%
+% Open the file
+fid = fopen('US_Crust_GRL_2015_CrustThickness.txt', 'r');
+
+% Read the data
+data = textscan(fid, '%f%f%f', 'Delimiter', {' ', '\n'}, 'MultipleDelimsAsOne', true);
+
+% Close the file
+fclose(fid);
+
+% Assign the data to variables
+latitude = data{1};
+longitude = data{2};
+moho_depth = data{3};
+
+% Create a figure
+figure();
+% Create US Map
+ax = usamap('conus');
+states = shaperead('usastatelo', 'UseGeoCoords', true);
+geoshow(ax, states, 'DisplayType', 'polygon', 'FaceColor', [0.9 0.9 0.9]);
+framem on;
+
+% Scatter plot colored by Moho depth
+scatterm(latitude, longitude, 10, moho_depth, 'filled');
+colorbar;
+
+% Additional plotting options
+title('Moho Depth Across the US');
+caxis([min(moho_depth), max(moho_depth)]);
