@@ -212,11 +212,6 @@ for clusterNum = 1:newNumClusters
     xlim([6 30]);
     ylim([1 length(clusterIndices) + 1]); 
     camroll(270); hold off;
-   
-    %Use phase and semblance weighted stacking instead of simple mean
-    %meanTrace = mean(modifiedRFs, 1); %simple mean stack
-    %meanTrace = pws2(modifiedRFs, p); %phase weighted stacking
-    %meanTrace = f_pws2(modifiedRFs, p, window_size, step); %phase and semblance weighted stacking
 
     %Semblance weighted stacking
     semblance = compute_semblance(modifiedRFs, window_size, step); %Compute semblance for the modified RFs in the current cluster
