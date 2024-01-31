@@ -15,7 +15,7 @@
 %  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 %  GNU General Public License for more details: http://www.gnu.org/licenses/
 %%
-%First run a0_setupparameters
+%First add path to SRTFISTA_library
 mntDir = '/gpfs/fs2/scratch/tolugboj_lab/';
 outdir = [mntDir '/Prj7_RadonT/Prj7_US_Earthscope/2_Data/'];
 addpath(outdir);
