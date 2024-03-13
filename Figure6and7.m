@@ -37,7 +37,7 @@ clusters = cluster(Z, 'maxclust', numClusters);
 
 %%
 % Define your clusterCombinationMap
-clusterCombinationMap = [1, 1, 1, 1, 2, 2, 3, 3, 3, 4, 4]; %Try to merge closely related clusters based on time/depth of signal
+clusterCombinationMap = [1, 1, 1, 1, 2, 2, 3, 3, 3, 4, 4]; 
 
 % Create newClusters by mapping original clusters to new clusters
 newClusters = arrayfun(@(x) clusterCombinationMap(x), clusters);
