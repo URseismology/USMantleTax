@@ -30,7 +30,7 @@ D = pdist(RFs, 'correlation');
 Z = linkage(D, 'average');
 
 % Determine cluster assignments based on the cutoff distance
-cutoffDistance = 0.93893;
+cutoffDistance = 0.94;
 
 clusters = cluster(Z, 'Cutoff', cutoffDistance, 'Criterion', 'distance');
 %clusters = cluster(Z, 'Criterion', 'distance','maxclust',7);
